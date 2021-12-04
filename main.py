@@ -1,4 +1,5 @@
 from Crypto.Cipher import DES
+from Crypto.Cipher import DES3
 from os import urandom
 
 import time
@@ -189,18 +190,20 @@ class DES3_with_padding(object):
 
         with open(file_text, "r") as f_text:
             with open(file_encode, "wb+") as f_encode:
-                while text_block := f_text.read(8):
-                    text_block = des_one.encrypt(text_block.encode())
-                    rand = urandom(4)
-                    text_block = rand + text_block + rand
+                text = f_text.read()
 
-                    text_block = des_two.encrypt(text_block)
-                    rand = urandom(4)
-                    text_block = rand + text_block + rand
+                text = des_one.encrypt(text.encode())
+                rand = urandom(4)
+                text = rand + text + rand
 
-                    text_block = des_three.encrypt(text_block)
+                text = des_two.encrypt(text)
+                rand = urandom(4)
+                text = rand + text + rand
 
-                    f_encode.write(text_block)
+                text = des_three.encrypt(text)
+
+                f_encode.write(text)
+
 
     def decrypt(self, file_encode, file_text):
         des_one = DES.new(self._key_one, DES.MODE_ECB)
@@ -209,17 +212,18 @@ class DES3_with_padding(object):
 
         with open(file_encode, 'rb') as f_encode:
             with open(file_text, "w+") as f_text:
-                while text_block := f_encode.read(24):
-                    text_block = des_three.decrypt(text_block)
+                text = f_encode.read()
 
-                    text_block = text_block[4:len(text_block) - 4]
+                text = des_three.decrypt(text)
 
-                    text_block = des_two.decrypt(text_block)
+                text = text[4:len(text) - 4]
+                text = des_two.decrypt(text)
 
-                    text_block = text_block[4:len(text_block) - 4]
+                text = text[4:len(text) - 4]
+                text = des_one.decrypt(text)
 
-                    text_block = des_one.decrypt(text_block)
-                    f_text.write(text_block.decode())
+                f_text.write(text.decode())
+
 
 
 key_one = generate_8_bytes("key_one.bin")
@@ -235,6 +239,19 @@ des3_with_padding = DES3_with_padding(key_one, key_two, key_three)
 
 file = "files_for_encryption/100mb.txt"
 
+
+start_time = time.time()
+des3_with_padding.encrypt(file, file[21:len(file) - 4] + "_encode_padd.bin")
+print("ENC--- %s seconds ---" % (time.time() - start_time))
+
+
+start_time = time.time()
+des3_with_padding.decrypt(file[21:len(file) - 4] + "_encode_padd.bin", file[21:len(file) - 4] + "_decode_padd.txt")
+print("DEC--- %s seconds ---" % (time.time() - start_time))
+print("\n")
+
+
+'''
 # -------------------------------------------------------------------------------------- #
 
 start_time = time.time()
@@ -271,12 +288,5 @@ print("\n")
 # ------------------------------------------------------------------------------------------ #
 
 
-start_time = time.time()
-des3_with_padding.encrypt(file, file[21:len(file) - 4] + "_encode_padd.bin")
-print("ENC--- %s seconds ---" % (time.time() - start_time))
 
-
-start_time = time.time()
-des3_with_padding.decrypt(file[21:len(file) - 4] + "_encode_padd.bin", file[21:len(file) - 4] + "_decode_padd.txt")
-print("DEC--- %s seconds ---" % (time.time() - start_time))
-print("\n")
+'''
